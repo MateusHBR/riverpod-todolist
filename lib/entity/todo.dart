@@ -33,4 +33,9 @@ final class Todo extends Equatable {
       isCompleted: isCompleted ?? this.isCompleted,
     );
   }
+
+  @override
+  String toString() {
+    return 'Todo { id: $id, title: $title, description: $description, isCompleted: $isCompleted }';
+  }
 }

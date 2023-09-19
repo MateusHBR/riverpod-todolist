@@ -16,6 +16,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _fieldTextController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    ref.read(homeProvider.notifier).initialize();
+  }
+
+  @override
   void dispose() {
     _fieldTextController.dispose();
     super.dispose();

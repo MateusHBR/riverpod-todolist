@@ -1,27 +1,30 @@
+import 'package:hello_riverpod/repository/schemas/todo_schema.dart';
+import 'package:isar/isar.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'pages/home_screen/home_screen.dart';
 
-final counterProvider = StateNotifierProvider<CounterProvider, int>(
-  (ref) => CounterProvider(),
-);
+final isarProvider = Provider<Isar>((ref) => Isar.getInstance()!);
 
-final class CounterProvider extends StateNotifier<int> {
-  CounterProvider() : super(0);
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  void increment() => state++;
+  final dir = await getApplicationDocumentsDirectory();
+  final isar = await Isar.open(
+    [
+      TodoSerializerSchema,
+    ],
+    directory: dir.path,
+  );
 
-  void decrement() {
-    if (state <= 0) return;
-    state--;
-  }
-}
-
-void main() {
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    ProviderScope(
+      overrides: [
+        isarProvider.overrideWithValue(isar),
+      ],
+      child: const MyApp(),
     ),
   );
 }

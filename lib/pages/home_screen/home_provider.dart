@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hello_riverpod/entity/todo.dart';
+import 'package:hello_riverpod/repository/todo_repository.dart';
 import 'package:uuid/uuid.dart';
 
 enum FilterState {
@@ -17,7 +18,9 @@ final homeFilterProvider = StateProvider(
 );
 
 final homeProvider = StateNotifierProvider<HomeProvider, List<Todo>>(
-  (ref) => HomeProvider(),
+  (ref) => HomeProvider(
+    todoRepository: ref.watch(todoRepositoryProvider),
+  ),
 );
 
 final homeFilteredListProvider = StateProvider(
@@ -35,21 +38,33 @@ final homeFilteredListProvider = StateProvider(
 );
 
 final class HomeProvider extends StateNotifier<List<Todo>> {
-  HomeProvider() : super([]);
+  HomeProvider({
+    required this.todoRepository,
+  }) : super([]);
 
-  void add({required String name}) {
+  final TodoRepository todoRepository;
+
+  Future<void> initialize() async {
+    final todos = await todoRepository.fetchTodos();
+    state = todos;
+  }
+
+  Future<void> add({required String name}) async {
+    final todo = Todo(
+      id: const Uuid().v4(),
+      title: name,
+      description: '',
+      isCompleted: false,
+    );
+    await todoRepository.addNewTodo(todo);
+
     state = [
       ...state,
-      Todo(
-        id: const Uuid().v4(),
-        title: name,
-        description: '',
-        isCompleted: false,
-      ),
+      todo,
     ];
   }
 
-  void toggle(String todoId) {
+  Future<void> toggle(String todoId) async {
     final todoIndex = state.indexWhere((todo) => todo.id == todoId);
     if (todoIndex < 0) return;
 
@@ -57,6 +72,7 @@ final class HomeProvider extends StateNotifier<List<Todo>> {
     final updatedTodo = todo.copyWith(
       isCompleted: !todo.isCompleted,
     );
+    await todoRepository.updateTodo(updatedTodo);
 
     state = [
       ...state.sublist(0, todoIndex),
@@ -65,7 +81,14 @@ final class HomeProvider extends StateNotifier<List<Todo>> {
     ];
   }
 
-  void remove(String todoId) {
-    state = state.where((todo) => todo.id != todoId).toList();
+  Future<void> remove(String todoId) async {
+    final todoIndex = state.indexWhere((todo) => todo.id == todoId);
+    if (todoIndex < 0) return;
+
+    await todoRepository.deleteTodo(state[todoIndex]);
+    state = [
+      ...state.sublist(0, todoIndex),
+      ...state.sublist(todoIndex + 1),
+    ];
   }
 }
